@@ -128,6 +128,56 @@ RC Table::create(Db *db, int32_t table_id, const char *path, const char *name, c
   return rc;
 }
 
+
+RC Table::destroy(const char* base_dir)
+{
+	RC ret;
+	std::string path;
+	const char *base_directory, *table_name;
+	int index_num;
+	IndexMeta *index_meta;
+
+	ret = sync();
+	if ( OB_FAIL( ret ) )
+	{
+		LOG_ERROR( "Failed to synchronize data while destroying table : %s. ", table_meta_.name() );
+		return ret;
+	}
+
+	ret = RC::SUCCESS;
+	base_directory = base_dir;
+	table_name = table_meta_.name();
+
+	path = table_meta_file( base_directory, table_name );
+	if ( unlink( path.c_str() ) != 0 )
+	{
+		LOG_ERROR( "Failed to remove meta file. file: %s. ", path.c_str() );
+		return RC::FILE_REMOVE;
+	}
+
+	path = table_data_file( base_directory, table_name );
+	if ( unlink( path.c_str() ) != 0 )
+	{
+		LOG_ERROR( "Failed to remove data file. file: %s. ", path.c_str() );
+		return RC::FILE_REMOVE;
+	}
+
+	index_num = table_meta_.index_num();
+	for ( int i = 0; i < index_num; i++ )
+	{
+		( ( BplusTreeIndex * ) indexes_[i] )->close();
+		index_meta = ( IndexMeta * ) ( table_meta_.index( i ) );
+		path = table_index_file( base_directory, table_name, index_meta->name() );
+		if ( unlink( path.c_str() ) != 0 )
+		{
+			LOG_ERROR( "Failed to remove index file. file: %s. ", path.c_str() );
+			return RC::FILE_REMOVE;
+		}
+	}
+
+	return ret;
+}
+
 RC Table::open(Db *db, const char *meta_file, const char *base_dir)
 {
   // 加载元数据文件

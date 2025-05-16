@@ -176,6 +176,35 @@ RC Db::create_table(const char *table_name, span<const AttrInfoSqlNode> attribut
   return RC::SUCCESS;
 }
 
+RC Db::drop_table(const char *table_name)
+{
+  RC rc;
+	Table *table;
+	std::unordered_map<std::string, Table *>::const_iterator iter;
+
+	iter = opened_tables_.find( table_name );
+	if ( iter == opened_tables_.end() )
+	{
+		LOG_ERROR( "Failed to drop table %s. ", table_name );
+		return RC::SCHEMA_TABLE_NOT_EXIST;
+	}
+
+	table = iter->second;
+	rc = table->destroy( path_.c_str());
+	if ( OB_FAIL( rc ) )
+	{
+		LOG_ERROR( "Database can't destroy table. Database name: %s, table name: %s. ",
+			name_.c_str(),
+			table->table_meta().name() );
+		return rc;
+	}
+
+	opened_tables_.erase( iter );
+	delete table;
+	
+	return RC::SUCCESS;
+}
+
 Table *Db::find_table(const char *table_name) const
 {
   unordered_map<string, Table *>::const_iterator iter = opened_tables_.find(table_name);

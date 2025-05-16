@@ -60,6 +60,9 @@ public:
       span<const AttrInfoSqlNode> attributes, const vector<string> &primary_keys, StorageFormat storage_format,
       StorageEngine storage_engine);
 
+
+
+  RC destroy(const char *base_dir);
   /**
    * 打开一个表
    * @param meta_file 保存表元数据的文件完整路径
@@ -128,8 +131,8 @@ public:
 private:
   Db       *db_ = nullptr;
   TableMeta table_meta_;
-  // DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
-  // RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
-  // vector<Index *>    indexes_;
+  DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
+  RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
+  vector<Index *>    indexes_;
   unique_ptr<TableEngine> engine_ = nullptr;
 };
