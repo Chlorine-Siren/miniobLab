@@ -1,0 +1,5 @@
+create table Drop_table_6(id int, t_name char(4));
+create index index_id on Drop_table_6(id);
+insert into Drop_table_6 values(1,'OB');
+select * from Drop_table_6; 
+drop table Drop_table_6;

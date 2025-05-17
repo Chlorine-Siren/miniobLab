@@ -176,34 +176,23 @@ RC Db::create_table(const char *table_name, span<const AttrInfoSqlNode> attribut
   return RC::SUCCESS;
 }
 
-RC Db::drop_table(const char *table_name)
+RC Db::drop_table(const char* table_name)
 {
-  RC rc;
-	Table *table;
-	std::unordered_map<std::string, Table *>::const_iterator iter;
+    auto it = opened_tables_.find(table_name);
+    if (it == opened_tables_.end())
+    {
+        return RC::SCHEMA_TABLE_NOT_EXIST; // 找不到表，要返回错误，测试程序中也会校验这种场景
+    }
+    Table* table = it->second;
+    RC rc = table->destroy(path_.c_str()); // 让表自己销毁资源
+    if(rc != RC::SUCCESS) return rc;
 
-	iter = opened_tables_.find( table_name );
-	if ( iter == opened_tables_.end() )
-	{
-		LOG_ERROR( "Failed to drop table %s. ", table_name );
-		return RC::SCHEMA_TABLE_NOT_EXIST;
-	}
-
-	table = iter->second;
-	rc = table->destroy( path_.c_str());
-	if ( OB_FAIL( rc ) )
-	{
-		LOG_ERROR( "Database can't destroy table. Database name: %s, table name: %s. ",
-			name_.c_str(),
-			table->table_meta().name() );
-		return rc;
-	}
-
-	opened_tables_.erase( iter );
-	delete table;
-	
-	return RC::SUCCESS;
+    opened_tables_.erase(it); // 删除成功的话，从表list中将它删除
+    delete table;
+    return RC::SUCCESS;
 }
+
+
 
 Table *Db::find_table(const char *table_name) const
 {
